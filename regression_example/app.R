@@ -115,7 +115,7 @@ server <- function(input, output) {
       #create a dataset that's long in order to easily graph error bar
       dat_long <- pivot_longer(my_dat, cols = c(se_low, se_high), values_to = "my_value")
       
-      #create craph
+      #create graph
       my_plot <- my_dat %>% 
         ggplot() + 
         geom_point(mapping = aes(x = var, y = est, color = is_sig)) + 

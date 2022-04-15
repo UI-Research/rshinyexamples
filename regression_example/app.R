@@ -21,6 +21,7 @@ options(scipen = 999)
 #read in dataset with coefficients and standard errors
 my_models <- read_csv("models.csv")
 
+#pull unique model names to use later as choices user has to select from
 unique_regs <- my_models %>% 
   pull(var) %>% 
   unique()

@@ -1,0 +1,182 @@
+---
+title: "Black Population Change in California"
+format: 
+  html: 
+    page-layout: custom
+server: shiny
+---
+
+
+
+
+```{r}
+#| panel: sidebar
+h5("Choose Between California Data or Site Data")
+selectInput("site", 
+						"", 
+						c("California Data", 
+							"Site Data"), 
+						selected = "California Data")
+
+h5("For California Data: Filter to Top or Bottom 5 By:")
+
+selectInput("variables", 
+						"Choose Variable", 
+						c("Population Change" = "dif", 
+							"Percent Change" = "change_perc", 
+							"Share Change" = "share_dif"), 
+						selected = "dif")
+
+selectInput("years", 
+						"Choose Years", 
+						c("1990-2019" = "90_19", 
+							"2010-2019" = "10_19"), 
+						selected = "90_19")
+
+selectInput("geography", 
+						"Choose Geography", 
+						c("County", 
+							"Place"), 
+						selected = "County")
+
+selectInput("top_or_bottom", 
+						"Choose Top or Bottom of Data", 
+						c("Top", 
+							"Bottom"), 
+						selected = "Top")
+
+h5("Select Columns")
+
+checkboxGroupInput("select_vars", 
+									 "Choose Columns", 
+									 choices = c("Name of Geography", 
+									 						"Black Population in 1990", 
+									 						"Black Population in 2010", 
+									 						"Black Population in 2019", 
+									 						"Population Change 1990 to 2019", 
+									 						"Population Change 2010 to 2019", 
+									 						"Percent Change 1990 to 2019", 
+									 						"Percent Change 2010 to 2019", 
+									 						"Share of Population Black in 1990", 
+									 						"Share of Population Black in 2010", 
+									 						"Share of Population Black in 2019", 
+									 						"Share Change 1990 to 2019", 
+									 						"Share Change 2010 to 2019"), 
+									 selected = c("Name of Geography", 
+									 						"Black Population in 1990", 
+									 						"Black Population in 2010", 
+									 						"Black Population in 2019", 
+									 						"Population Change 1990 to 2019", 
+									 						"Population Change 2010 to 2019", 
+									 						"Percent Change 1990 to 2019", 
+									 						"Percent Change 2010 to 2019", 
+									 						"Share of Population Black in 1990", 
+									 						"Share of Population Black in 2010", 
+									 						"Share of Population Black in 2019", 
+									 						"Share Change 1990 to 2019", 
+									 						"Share Change 2010 to 2019"))
+			
+
+```
+
+```{r}
+#| panel: fill
+
+tableOutput("my_table")
+```
+
+
+
+```{r}
+#| context: server
+library(tidyverse)
+county_pop <- read_csv("county_pop.csv")
+place_pop <- read_csv("place_pop.csv")
+
+
+my_df<- reactive({
+	  if(input$geography == "County"){
+  	df <- county_pop
+  } else{
+  	df <- place_pop
+  }
+
+  df
+})
+
+output$my_table <- renderTable({
+
+if(input$site == "California Data"){
+	arrange_var <- str_c(input$variables, "_", input$years)
+
+	if(input$top_or_bottom == "Top"){
+		final_df <- my_df() %>%
+	  select(var = one_of(arrange_var)) %>% 
+		cbind(my_df()) %>%
+		arrange(desc(var)) %>%
+		transmute(`Name of Geography` = NAME.x,
+			   `Black Population in 1990` = prettyNum(estimate_1990, ","),
+				 `Black Population in 2010` = prettyNum(estimate_2010, ","),
+				 `Black Population in 2019` = prettyNum(estimate_2019, ","),
+				 `Population Change 1990 to 2019` = prettyNum(dif_90_19, ","),
+				 `Population Change 2010 to 2019` = prettyNum(dif_10_19, ","),
+				 `Percent Change 1990 to 2019` = scales::percent(accuracy = .1,change_perc_90_19),
+				 `Percent Change 2010 to 2019` = scales::percent(accuracy = .1,change_perc_10_19),
+				 `Share of Population Black in 1990` = scales::percent(accuracy = .1,share_1990),
+				 `Share of Population Black in 2010` = scales::percent(accuracy = .1,share_2010),
+				 `Share of Population Black in 2019` = scales::percent(accuracy = .1,share_2019),
+				 `Share Change 1990 to 2019` = scales::percent(accuracy = .1,share_dif_90_19),
+				 `Share Change 2010 to 2019` = scales::percent(accuracy = .1,share_dif_10_19)
+				 ) %>%
+			select(any_of(input$select_vars)) %>%
+			slice(1:5)
+	} else{
+		final_df <- my_df() %>%
+		select(var = one_of(arrange_var)) %>% 
+		cbind(my_df()) %>%
+		arrange(var) %>%
+		transmute(`Name of Geography` = NAME.x,
+			   `Black Population in 1990` = prettyNum(estimate_1990, ","),
+				 `Black Population in 2010` = prettyNum(estimate_2010, ","),
+				 `Black Population in 2019` = prettyNum(estimate_2019, ","),
+				 `Population Change 1990 to 2019` = prettyNum(dif_90_19, ","),
+				 `Population Change 2010 to 2019` = prettyNum(dif_10_19, ","),
+				 `Percent Change 1990 to 2019` = scales::percent(accuracy = .1,change_perc_90_19),
+				 `Percent Change 2010 to 2019` = scales::percent(accuracy = .1,change_perc_10_19),
+				 `Share of Population Black in 1990` = scales::percent(accuracy = .1,share_1990),
+				 `Share of Population Black in 2010` = scales::percent(accuracy = .1,share_2010),
+				 `Share of Population Black in 2019` = scales::percent(accuracy = .1,share_2019),
+				 `Share Change 1990 to 2019` = scales::percent(accuracy = .1,share_dif_90_19),
+				 `Share Change 2010 to 2019` = scales::percent(accuracy = .1,share_dif_10_19)
+				 ) %>%
+			select(any_of(input$select_vars)) %>%
+			slice(1:5)
+	}
+} else{
+final_df <- 	place_pop %>% filter(GEOID %in% c("0602252", 
+											"0675000",
+											"0627000", 
+											"0603526", 
+											"0640130", 
+											"0682590", 
+											"0649270"
+											)) %>% 
+	transmute(`Name of Geography` = NAME.x, 
+			   `Black Population in 1990` = prettyNum(estimate_1990, ","),
+				 `Black Population in 2010` = prettyNum(estimate_2010, ","), 
+				 `Black Population in 2019` = prettyNum(estimate_2019, ","), 
+				 `Population Change 1990 to 2019` = prettyNum(dif_90_19, ","), 
+				 `Population Change 2010 to 2019` = prettyNum(dif_10_19, ","), 
+				 `Percent Change 1990 to 2019` = scales::percent(accuracy = .1,change_perc_90_19), 
+				 `Percent Change 2010 to 2019` = scales::percent(accuracy = .1,change_perc_10_19), 
+				 `Share of Population Black in 1990` = scales::percent(accuracy = .1,share_1990), 
+				 `Share of Population Black in 2010` = scales::percent(accuracy = .1,share_2010), 
+				 `Share of Population Black in 2019` = scales::percent(accuracy = .1,share_2019), 
+				 `Share Change 1990 to 2019` = scales::percent(accuracy = .1,share_dif_90_19), 
+				 `Share Change 2010 to 2019` = scales::percent(accuracy = .1,share_dif_10_19), 
+				 ) %>% 
+		  select(any_of(input$select_vars)) 
+}
+	final_df
+}, width = "100%")
+```
